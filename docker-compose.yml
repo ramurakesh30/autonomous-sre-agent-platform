@@ -1,0 +1,60 @@
+
+services:
+  tempo:
+    image: grafana/tempo:2.8.2
+    user: "0:0"
+    command:
+      - "-config.file=/etc/tempo.yaml"
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - tempo
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: loki
+    command: -config.file=/etc/loki/loki.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.8.3
+    container_name: alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+      - ./services/order-service/logs:/var/log/order-service:ro
+      - ./services/payment-service/logs:/var/log/payment-service:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+volumes:
+  tempo-data:
+  grafana-data:
+  loki-data:
+  alloy-data:

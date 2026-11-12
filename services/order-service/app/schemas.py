@@ -12,8 +12,14 @@ class OrderRequest(BaseModel):
     )
     currency: str = "EUR"
 
+class PaymentResponse(BaseModel):
+    payment_id: str
+    order_id: str
+    status: str
+    amount: Decimal
+    currency: str
 
 class OrderResponse(BaseModel):
     order_id: str
-    payment_id: str
     status: str
+    payment: PaymentResponse
